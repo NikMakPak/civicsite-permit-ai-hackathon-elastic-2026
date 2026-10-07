@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CivicSite Permit Copilot</title>
+<style>
+  :root {
+    --bg:#f6f7f9; --card:#fff; --ink:#14181f; --muted:#5b6574; --line:#e1e5ea; --accent:#1f5eff;
+    --high:#c62828; --high-bg:#fdecea; --med:#a15c00; --med-bg:#fff3df; --low:#46607a; --low-bg:#eaf0f6; --ok:#1b7a43;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#0f1318; --card:#171c23; --ink:#e8ecf1; --muted:#98a3b3; --line:#262d37; --accent:#6f9bff;
+      --high:#ff8a80; --high-bg:#3a1f1e; --med:#ffb74d; --med-bg:#3a2d17; --low:#9db4cc; --low-bg:#1f2a36; --ok:#6fd49a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#0f1318; --card:#171c23; --ink:#e8ecf1; --muted:#98a3b3; --line:#262d37; --accent:#6f9bff;
+    --high:#ff8a80; --high-bg:#3a1f1e; --med:#ffb74d; --med-bg:#3a2d17; --low:#9db4cc; --low-bg:#1f2a36; --ok:#6fd49a;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:1080px; margin:0 auto; padding:20px 16px 60px; }
+  header { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:baseline; justify-content:space-between; margin-bottom:14px; }
+  h1 { font-size:22px; margin:0; letter-spacing:-.01em; }
+  .sub { color:var(--muted); font-size:13px; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:99px; font-size:12px; border:1px solid var(--line); color:var(--muted); background:var(--card); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin:12px 0; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; }
+  input[type=text] { flex:1 1 260px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font-size:15px; }
+  button { padding:9px 14px; border-radius:8px; border:1px solid var(--accent); background:var(--accent); color:#fff; font-size:14px; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--accent); }
+  button:disabled { opacity:.5; cursor:wait; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .chip { font-size:12px; padding:3px 9px; border-radius:99px; border:1px solid var(--line); background:var(--bg); color:var(--muted); cursor:pointer; }
+  .chip:hover { color:var(--accent); border-color:var(--accent); }
+  h2 { font-size:16px; margin:0 0 8px; }
+  .flag { border-left:4px solid var(--low); padding:10px 12px; margin:10px 0; background:var(--bg); border-radius:0 8px 8px 0; }
+  .flag.high { border-color:var(--high); } .flag.medium { border-color:var(--med); }
+  .sev { font-size:11px; font-weight:600; text-transform:uppercase; padding:2px 7px; border-radius:4px; margin-right:6px; background:var(--low-bg); color:var(--low); }
+  .sev.high { background:var(--high-bg); color:var(--high); } .sev.medium { background:var(--med-bg); color:var(--med); }
+  .meta { color:var(--muted); font-size:12.5px; margin-top:4px; }
+  .act { margin-top:6px; } .act b { font-weight:600; }
+  .ev { font-size:12.5px; margin-top:6px; }
+  .ev a { color:var(--accent); text-decoration:none; word-break:break-all; } .ev a:hover { text-decoration:underline; }
+  .ev button { padding:1px 8px; font-size:11.5px; margin-left:6px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:500; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; margin:8px 0 2px; }
+  .stat { background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+  .stat b { display:block; font-size:20px; } .stat span { color:var(--muted); font-size:12px; }
+  pre { white-space:pre-wrap; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:13px; margin:6px 0; }
+  .answer { white-space:pre-wrap; }
+  .trace { font-size:12.5px; color:var(--muted); } .trace code { color:var(--ink); }
+  .ok { color:var(--ok); } .err { color:var(--high); }
+  .cand { padding:8px 10px; border:1px solid var(--line); border-radius:8px; margin:6px 0; cursor:pointer; background:var(--bg); }
+  .cand:hover { border-color:var(--accent); }
+  @media (max-width:560px) { .wrap { padding:14px 16px 40px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>CivicSite Permit Copilot</h1>
+      <div class="sub">Cited action queue over fragmented NYC DOB records &middot; Elasticsearch + Mistral &middot; Manhattan, last 12 months</div>
+    </div>
+    <div id="badges" class="row"></div>
+  </header>
+
+  <div class="card">
+    <div class="row">
+      <input id="q" type="text" placeholder="Address, 7-digit BIN or 10-digit BBL (e.g. 439 East 77 Street)" autofocus>
+      <button id="go">Check building</button>
+    </div>
+    <div class="chips" id="examples"></div>
+    <div id="cands"></div>
+  </div>
+
+  <div id="result"></div>
+
+  <div class="card">
+    <h2>Ask CivicSite <span class="sub">&mdash; Mistral function calling &rarr; Elasticsearch + rule checks</span></h2>
+    <div class="row">
+      <input id="ask" type="text" placeholder="e.g. What is blocking 439 East 77 Street? / Which buildings have the most unanswered objections?">
+      <button id="askgo">Ask</button>
+    </div>
+    <div id="answer"></div>
+  </div>
+
+  <div class="card">
+    <h2>Portfolio: riskiest buildings <span class="sub" id="pfsub"></span></h2>
+    <div class="row" style="margin-bottom:8px"><select id="reason" style="padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)"></select></div>
+    <div id="portfolio"></div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let currentBin = null;
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (!r.ok) { let m = r.statusText; try { m = (await r.json()).detail || m; } catch(e){} throw new Error(m); }
+  return r.json();
+}
+
+async function init() {
+  try {
+    const c = await api("/api/config");
+    $("badges").innerHTML =
+      `<span class="badge">backend: ${esc(c.backend)}</span>` +
+      `<span class="badge">as of ${esc(c.as_of)}</span>` +
+      `<span class="badge">LLM: ${c.llm_enabled ? esc(c.chat_model) : "disabled (no key)"}</span>`;
+  } catch (e) { $("badges").textContent = e.message; }
+  const ex = ["439 East 77 Street", "1 Wall Street", "1090367", "350 Fifth Avenue"];
+  $("examples").innerHTML = ex.map(e => `<span class="chip" data-q="${esc(e)}">${esc(e)}</span>`).join("");
+  $("examples").onclick = (ev) => { const q = ev.target.dataset?.q; if (q) { $("q").value = q; check(); } };
+  const reasons = ["", "OBJECTIONS_AWAITING_RESPONSE","PERMIT_VIOLATION_CONFLICT","WWP_NO_ACTIVE_PERMIT","APPROVED_NO_PERMIT","PERMIT_EXPIRING","PERIODIC_FILING_OVERDUE","ON_HOLD_BLOCKER","CHRONOLOGY_CONFLICT","STALE_AGENCY_QUEUE"];
+  $("reason").innerHTML = reasons.map(r => `<option value="${r}">${r || "all reasons"}</option>`).join("");
+  $("reason").onchange = loadPortfolio;
+  loadPortfolio();
+}
+
+async function loadPortfolio() {
+  const reason = $("reason").value;
+  try {
+    const p = await api("/api/portfolio?limit=10" + (reason ? "&reason=" + reason : ""));
+    $("pfsub").textContent = `${p.total_buildings.toLocaleString()} buildings with open flags`;
+    $("portfolio").innerHTML = `<table><tr><th>Address</th><th>Risk</th><th>Flags</th><th>Top issue</th></tr>` +
+      p.top.map(b => `<tr style="cursor:pointer" data-bin="${esc(b.bin)}"><td>${esc(b.address)}<div class="meta">BIN ${esc(b.bin)}</div></td><td>${esc(b.risk_score)}</td><td>${esc(b.open_flag_count)}</td><td>${esc(b.top_flag_title)}</td></tr>`).join("") + `</table>`;
+    $("portfolio").onclick = (ev) => { const tr = ev.target.closest("tr[data-bin]"); if (tr) { loadBin(tr.dataset.bin); window.scrollTo({top:0,behavior:"smooth"}); } };
+  } catch (e) { $("portfolio").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+
+async function check() {
+  const q = $("q").value.trim(); if (!q) return;
+  $("go").disabled = true; $("cands").innerHTML = ""; $("result").innerHTML = "";
+  try {
+    const r = await api("/api/property?q=" + encodeURIComponent(q));
+    if (r.analysis) render(r.analysis);
+    else if (r.candidates.length) {
+      $("cands").innerHTML = "<div class='meta' style='margin-top:8px'>Several matches &mdash; pick one:</div>" + r.candidates.map(c =>
+        `<div class="cand" data-bin="${esc(c.bin)}"><b>${esc(c.address)}</b> <span class="meta">BIN ${esc(c.bin)} &middot; ${esc(c.open_flag_count)} open flags</span></div>`).join("");
+      $("cands").onclick = (ev) => { const d = ev.target.closest(".cand"); if (d) loadBin(d.dataset.bin); };
+    } else $("cands").innerHTML = "<div class='meta' style='margin-top:8px'>No building found in the indexed window (Manhattan, last 12 months).</div>";
+  } catch (e) { $("cands").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+  $("go").disabled = false;
+}
+
+async function loadBin(bin) {
+  $("cands").innerHTML = "";
+  const r = await api("/api/property?bin=" + bin);
+  if (r.analysis) render(r.analysis);
+}
+
+function render(a) {
+  currentBin = a.bin;
+  const p = a.property, c = p.counts || {};
+  const flags = a.flags.map((f, i) => `
+    <div class="flag ${esc(f.severity)}">
+      <div><span class="sev ${esc(f.severity)}">${esc(f.severity)}</span><b>${esc(f.title)}</b></div>
+      <div class="meta">${esc(f.reason_code)} &middot; controlled by <b>${esc(f.controlled_by)}</b> &middot; confidence ${esc(f.confidence)} (${esc(f.join_basis)} join) &middot; score ${esc(f.score)}</div>
+      <div>${esc(f.explanation)}</div>
+      <div class="act"><b>Next step:</b> ${esc(f.recommended_action)} <span class="meta">(${esc(f.owner_hint)})</span></div>
+      ${f.caveat ? `<div class="meta">&#9888; ${esc(f.caveat)}</div>` : ""}
+      <div class="ev">Evidence: ${f.evidence.map(e => `<a href="${esc(e.source_url)}" target="_blank" rel="noopener">${esc(e.record_id)}</a> <span class="meta">${esc(e.status)} ${esc(e.date)}</span><button class="ghost" data-rid="${esc(e.record_id)}">Mistral facts</button>`).join(" &nbsp; ")}</div>
+      <div class="facts" id="facts-${i}"></div>
+    </div>`).join("") || "<div class='meta'>No rule flags for this building in the indexed window.</div>";
+  $("result").innerHTML = `
+    <div class="card">
+      <h2>${esc(p.address || "Unknown address")} <span class="sub">BIN ${esc(a.bin)} &middot; BBL ${esc(p.bbl)} &middot; ZIP ${esc(p.zip)}</span></h2>
+      <div class="grid">
+        <div class="stat"><b>${a.flags.length}</b><span>action items</span></div>
+        <div class="stat"><b>${c.filing || 0}</b><span>DOB NOW filings</span></div>
+        <div class="stat"><b>${c.permit || 0}</b><span>permits</span></div>
+        <div class="stat"><b>${p.open_violations}</b><span>open violations</span></div>
+        <div class="stat"><b>${c.complaint || 0}</b><span>complaints</span></div>
+      </div>
+    </div>
+    <div class="card"><h2>Action queue <span class="sub">deterministic rules &middot; every item cites its source row</span></h2>${flags}</div>
+    <div class="card"><h2>Unified timeline</h2><table><tr><th>Date</th><th>Type</th><th>Status</th><th>Record</th></tr>${
+      a.timeline.slice(0, 40).map(t => `<tr><td>${esc(t.date)}</td><td>${esc(t.type)}</td><td>${esc(t.status)}</td><td><a href="${esc(t.source_url)}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(t.summary)}</a></td></tr>`).join("")
+    }</table></div>`;
+  $("result").querySelectorAll("button[data-rid]").forEach(b => b.onclick = () => extract(b));
+  $("ask").value = $("ask").value || `What is blocking ${p.address}?`;
+}
+
+async function extract(btn) {
+  const box = btn.closest(".flag").querySelector(".facts");
+  btn.disabled = true; box.innerHTML = "<div class='meta'>Calling Mistral structured output&hellip;</div>";
+  try {
+    const d = await api("/api/extract", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({record_id: btn.dataset.rid})});
+    if (d.skipped) { box.innerHTML = `<div class='meta'>${esc(d.skipped)}</div>`; }
+    else box.innerHTML = `<pre>${esc(JSON.stringify(d.extracted, null, 2))}</pre><div class="meta">model ${esc(d.extraction_model)} &middot; quotes verified verbatim: ${Math.round((d.quotes_verified||0)*100)}% ${d.cached ? "&middot; cached in Elasticsearch" : ""}</div>`;
+  } catch (e) { box.innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+  btn.disabled = false;
+}
+
+async function askQ() {
+  const question = $("ask").value.trim(); if (!question) return;
+  $("askgo").disabled = true; $("answer").innerHTML = "<div class='meta'>Mistral is calling tools&hellip;</div>";
+  try {
+    const r = await api("/api/ask", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({question, bin: currentBin})});
+    const cc = r.citations;
+    $("answer").innerHTML = `<pre class="answer">${esc(r.answer)}</pre>
+      <div class="meta ${cc.invalid_ids?.length ? "err" : "ok"}">citations: ${cc.valid}/${cc.cited} verified against tool results${cc.invalid_ids?.length ? " &middot; unverified: " + esc(cc.invalid_ids.join(", ")) : ""} &middot; model ${esc(r.model)} &middot; backend ${esc(r.backend)}</div>
+      <div class="trace">${r.tool_trace.map(t => `<div>&rarr; <code>${esc(t.tool)}</code>(${esc(JSON.stringify(t.args))}) &mdash; ${esc(t.summary)}</div>`).join("")}</div>`;
+  } catch (e) { $("answer").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+  $("askgo").disabled = false;
+}
+
+$("go").onclick = check; $("q").onkeydown = (e) => { if (e.key === "Enter") check(); };
+$("askgo").onclick = askQ; $("ask").onkeydown = (e) => { if (e.key === "Enter") askQ(); };
+init();
+</script>
+</body>
+</html>

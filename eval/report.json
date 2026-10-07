@@ -1,0 +1,19 @@
+{
+  "flags_sampled": 100,
+  "evidence_checked": 136,
+  "citation_exists_rate": 1.0,
+  "bin_match_rate": 1.0,
+  "status_unchanged_rate": 1.0,
+  "date_match_rate": 1.0,
+  "network_errors": 0,
+  "still_in_flagged_state_by_reason": {
+    "APPROVED_NO_PERMIT": "14/14",
+    "CHRONOLOGY_CONFLICT": "14/14",
+    "OBJECTIONS_AWAITING_RESPONSE": "14/14",
+    "ON_HOLD_BLOCKER": "13/13",
+    "PERMIT_EXPIRING": "13/13",
+    "PERMIT_VIOLATION_CONFLICT": "13/13",
+    "STALE_AGENCY_QUEUE": "6/6",
+    "WWP_NO_ACTIVE_PERMIT": "13/13"
+  }
+}
