@@ -106,3 +106,10 @@ def test_norm_filing_and_legacy_mirror():
 def test_address_normalization():
     assert normalize_address_query("439 E 77th St, New York, NY 10021") == "439 EAST 77 STREET"
     assert normalize_address_query("1 wall st") == "1 WALL STREET"
+
+
+def test_citation_check_handles_comma_lists():
+    from civicsite.agent import citation_check
+    seen = {"filings:A-I1", "permits:1", "ecb_violations:9Z"}
+    r = citation_check("x [filings:A-I1] y [permits:1, ecb_violations:9Z] z [permits:404]", seen)
+    assert (r["cited"], r["valid"], r["invalid_ids"]) == (4, 3, ["permits:404"])

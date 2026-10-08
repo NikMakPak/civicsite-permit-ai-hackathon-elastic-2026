@@ -138,11 +138,11 @@ class Toolbox:
                 "model": d.get("extraction_model"), "skipped": d.get("skipped")}
 
 
-CITE_RE = re.compile(r"\[([a-z_]+:[^\]\s]+)\]")
+CITE_RE = re.compile(r"\[([a-z_]+:[^\]]+)\]")
 
 
 def citation_check(answer: str, seen: set[str]) -> dict:
-    cited = CITE_RE.findall(answer)
+    cited = [c.strip() for grp in CITE_RE.findall(answer) for c in re.split(r",\s*(?=[a-z_]+:)", grp)]
     valid = [c for c in cited if c in seen]
     return {"cited": len(cited), "valid": len(valid), "invalid_ids": sorted(set(cited) - seen),
             "citation_accuracy": round(len(valid) / len(cited), 3) if cited else None}
